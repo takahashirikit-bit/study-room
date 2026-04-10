@@ -1,0 +1,8 @@
+# スペキュラBRDF（双方向反射率分布関数）
+
+LitシェーダーはPBR指向のシェーダー
+
+PBRは「ＢＲＤＦ（Bidirectional 
+Reflectance Distribution Function 双方向反射率分布関数」という関数を使ってサーフェイスのスペキュラ反射率を計算する
+
+BRDF式は実行効率と再現性都のトレードオフで様々な計算式が提案されている

@@ -9,7 +9,7 @@
 
 | 書籍名 / リソース | レイヤー | 進捗率 | 最終更新 | 成果物リンク |
 | :--- | :---: | :--- | :---: | :--- |
-| Unityシェーダープログラミング SRP編 | 03_apps | 21% | 2026-04-07 | [Internal Link](../03_apps/01_unity-srp-shader/) |
+| Unityシェーダープログラミング SRP編 | 03_apps | 28% | 2026-04-07 | [Internal Link](../03_apps/01_unity-srp-shader/) |
 | プログラムはなぜ動くのか | 01_core | 0% | 2026-xx-xx | [Internal Link](../01_core/01_how-program-works) |
 | ネットワークはなぜつながるのか | 02_arch | 0% | 2026-xx-xx | [Internal Link](../02_arch/01_how-network-works) |
 | Terraformではじめる実践IaC | 04_infra | 0% | 2026-xx-xx | [Internal Link](../04_infra/01_practical-terraform-iac) |
@@ -27,7 +27,7 @@
 - [x] 第1章: ＳＲＰ（Scriptable Render Pipeline）とは何か
 - [x] 第2章: シングル Pass フォワードレンダリング
 - [x] 第3章: UniversalRP のＰＢＲ（物理ベースレンダリング）モデル
-- [ ] 第4章: スペキュラＢＲＤＦ（双方向反射率分布関数）
+- [x] 第4章: スペキュラＢＲＤＦ（双方向反射率分布関数）
 - [ ] 第5章: 各種ライトの機能と距離／角度減衰量
 - [ ] 第6章: ワークフローモード（Metallic/Specular セットアップ）
 - [ ] 第7章: フォグの計算方法（Linear/Exp/Exp2 モード）
