@@ -1,0 +1,33 @@
+name: study_log
+description: 学習メモを投稿し、AIで調整した振り返り用のサマリーと併せてプッシュします
+title: "[Study] "
+labels: ["auto-process"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: カテゴリ
+      options:
+        - 01_core
+        - 02_arch
+        - 03_apps
+        - 04_infra
+    validations:
+      required: true
+  - type: input
+    id: book_title
+    attributes:
+      label: 参考書名
+  - type: input
+    id: chapter
+    attributes:
+      label: 章番号
+      placeholder: "1"
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: 学習メモ
+    validations:
+      required: true
