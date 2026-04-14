@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 from datetime import datetime
-import google.generativeai as genai
+from google import genai 
 
 GENAI_API_KEY = os.getenv("GEMINI_API_KEY")
 JSONL_PATH = "00_meta/analytics/raw_data.jsonl"
@@ -12,8 +12,7 @@ def analyze():
     diff = subprocess.check_output(["git", "diff", "HEAD^", "HEAD"]).decode("utf-8")
     message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"]).decode("utf-8")
 
-    genai.configure(api_key=GENAI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    client = genai.Client(api_key=GENAI_API_KEY)
 
     prompt = f"""
     Analyze this Git commit and return JSON.
@@ -31,7 +30,14 @@ def analyze():
     *Rule: category is "study" if msg contains "#". Otherwise "maintenance" or "experiment".
     """
 
-    response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+    response = client.models.generate_content(
+        model='gemini-flash-latest',
+        contents=prompt,
+        config={
+            'response_mime_type': 'application/json',
+        }
+    )
+    
     data = json.loads(response.text)
     data["timestamp"] = datetime.now().isoformat()
 
