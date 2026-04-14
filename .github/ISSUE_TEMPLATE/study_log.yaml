@@ -50,3 +50,7 @@ body:
     attributes:
       label: 【AI回答用】クイズの回答欄
       placeholder: "AIからクイズが出されたら、ここに回答を記入して「action: review」ラベルを付与するとAIが添削します。"
+  - type: input
+    id: time_spent
+    attributes:
+      label: 実績時間 (分)
