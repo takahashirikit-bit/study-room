@@ -1,5 +1,5 @@
 name: study_log
-description: 学習メモを投稿し、AIで調整した振り返り用のサマリーと併せてプッシュします
+description: 学習メモを投稿し、AIメンターによる理解度チェックとクイズを受けます
 title: "[Study] "
 labels: ["auto-process"]
 body:
@@ -22,12 +22,31 @@ body:
     id: chapter
     attributes:
       label: 章番号
-      placeholder: "1"
+    validations:
+      required: true
+  - type: textarea
+    id: summary_own_words
+    attributes:
+      label: この章を一言で言うと？（自分の言葉で）
+      placeholder: "参考書の表現を使わずに、学生に教えるつもりで説明してください。"
     validations:
       required: true
   - type: textarea
     id: content
     attributes:
       label: 学習メモ
+      placeholder: "要点やコード例などを自由に記載してください。"
     validations:
       required: true
+  - type: textarea
+    id: pros_cons
+    attributes:
+      label: この技術の「使いどころ」と「注意点」
+      placeholder: "「どんな時に役立ちそうか」「逆に、どんなケースでは不向きか」を、自身の推論で記述してください（具体的な業務情報の記載は禁止）。"
+    validations:
+      required: true
+  - type: textarea
+    id: quiz_answer
+    attributes:
+      label: 【AI回答用】クイズの回答欄
+      placeholder: "AIからクイズが出されたら、ここに回答を記入して「action: review」ラベルを付与するとAIが添削します。"

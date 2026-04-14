@@ -20,57 +20,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Parse Issue Body and Validate
-        id: parse
-        run: |
-          CATEGORY=$(echo "${{ github.event.issue.body }}" | grep -A 1 "### カテゴリ" | tail -n 1 | xargs)
-          BOOK=$(echo "${{ github.event.issue.body }}" | grep -A 1 "### 参考書名" | tail -n 1 | xargs)
-          CHAPTER=$(echo "${{ github.event.issue.body }}" | grep -A 1 "### 章番号" | tail -n 1 | xargs | sed 's/[^0-9]//g')
-          CONTENT=$(echo "${{ github.event.issue.body }}" | sed -n '/### 学習メモ/,$p' | sed '1d' | xargs -0)
-
-          if [ -z "$CATEGORY" ] || [ "$CATEGORY" == "_No response_" ]; then
-            echo "Error: カテゴリが不足しています。" && exit 1
-          fi
-          if [ -z "$BOOK" ] || [ "$BOOK" == "_No response_" ]; then
-            echo "Error: 参考書名が不足しています。" && exit 1
-          fi
-          if [ -z "$CHAPTER" ]; then
-            echo "Error: 章番号が不足しています。" && exit 1
-          fi
-          if [ -z "$CONTENT" ] || [ "$CONTENT" == "_No response_" ]; then
-            echo "Error: 学習メモが不足しています。" && exit 1
-          fi
-
-          echo "dest_dir=$CATEGORY/$BOOK" >> $GITHUB_OUTPUT
-          echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
-          echo "content=$CONTENT" >> $GITHUB_OUTPUT
-
-      - name: Load AI Prompt
-        id: prompt
-        run: |
-          if [ "${{ github.event.label.name }}" == "action:summary" ]; then
-            PROMPT_FILE=".github/prompts/summary.txt"
-          else
-            PROMPT_FILE=".github/prompts/review.txt"
-          fi
-          if [ ! -f "$PROMPT_FILE" ]; then
-            echo "Error: $PROMPT_FILE が存在しません。" && exit 1
-          fi
-          {
-            echo "instructions<<EOF"
-            cat "$PROMPT_FILE"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Call Gemini API
         id: gemini
         env:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          FULL_PROMPT="${{ steps.prompt.outputs.instructions }}\n\n学習メモ:\n${{ steps.parse.outputs.content }}"
+          BODY="${{ github.event.issue.body }}"
+          CATEGORY=$(echo "$BODY" | grep -A 1 "### カテゴリ" | tail -n 1 | xargs)
+          BOOK=$(echo "$BODY" | grep -A 1 "### 参考書名" | tail -n 1 | xargs)
+          CHAPTER=$(echo "$BODY" | grep -A 1 "### 章番号" | tail -n 1 | xargs | sed 's/[^0-9]//g')
+          
+          OWN_WORDS=$(echo "$BODY" | sed -n '/### この章を一言で言うと？/,/###/p' | sed '1d;$d' | xargs -0)
+          CONTENT=$(echo "$BODY" | sed -n '/### 学習メモ/,/###/p' | sed '1d;$d' | xargs -0)
+          PROS_CONS=$(echo "$BODY" | sed -n '/### この技術の「使いどころ」と「注意点」/,/###/p' | sed '1d;$d' | xargs -0)
+          QUIZ_ANS=$(echo "$BODY" | sed -n '/### 【AI回答用】クイズの回答欄/,$p' | sed '1d' | xargs -0)
+
+          if [ -z "$CATEGORY" ] || [ -z "$BOOK" ] || [ -z "$CHAPTER" ] || [ -z "$CONTENT" ]; then
+            echo "Error: 必須項目が不足しています。" && exit 1
+          fi
+
+          if [ "${{ github.event.label.name }}" == "action:summary" ]; then
+            PROMPT_FILE=".github/prompts/summary.txt"
+          else
+            PROMPT_FILE=".github/prompts/review.txt"
+          fi
+          INSTRUCTIONS=$(cat "$PROMPT_FILE")
+
+          FULL_PROMPT="${INSTRUCTIONS}\n\n一言要約: ${OWN_WORDS}\n学習メモ: ${CONTENT}\n推論（使いどころ）: ${PROS_CONS}\nクイズ回答: ${QUIZ_ANS}"
           JSON_DATA=$(jq -n --arg msg "$FULL_PROMPT" '{contents: [{parts: [{text: $msg}]}]}')
 
-          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/modelsgemini-flash-latest:generateContent?key=$API_KEY" \
+          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
             -H "Content-Type: application/json" \
             -d "$JSON_DATA")
 
@@ -78,19 +57,23 @@ jobs:
             echo "Error: API Fail ($HTTP_STATUS)" && cat api_response.json && exit 1
           fi
           jq -r '.candidates[0].content.parts[0].text' api_response.json > ai_output.txt
+          
+          echo "dest_dir=$CATEGORY/$BOOK" >> $GITHUB_OUTPUT
+          echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
+          echo "content=$CONTENT" >> $GITHUB_OUTPUT
 
       - name: Create and Push Files
         if: github.event.label.name == 'action:summary'
         run: |
-          DIR="${{ steps.parse.outputs.dest_dir }}"
-          PREFIX="${{ steps.parse.outputs.chapter }}"
+          DIR="${{ steps.gemini.outputs.dest_dir }}"
+          PREFIX="${{ steps.gemini.outputs.chapter }}"
           mkdir -p "$DIR"
 
           {
             echo "# ${{ github.event.issue.title }} - Memo"
             echo "Source: #${{ github.event.issue.number }}"
             echo -e "\n---\n"
-            echo "${{ steps.parse.outputs.content }}"
+            echo "${{ steps.gemini.outputs.content }}"
           } > "$DIR/${PREFIX}_memo.md"
 
           {
