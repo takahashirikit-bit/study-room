@@ -20,7 +20,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install google-generativeai==0.4.1
+        run: pip install google-generativeai
 
       - name: Run Analytics
         env:
