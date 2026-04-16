@@ -5,7 +5,7 @@ import os
 def update_template():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     books_path = os.path.join(base_dir, "00_meta", "books.json")
-    template_path = os.path.join(base_dir, ".github", "ISSUE_TEMPLATE", "study_log.yml")
+    template_path = os.path.join(base_dir, ".github", "ISSUE_TEMPLATE", "study_log.yaml")
 
     with open(books_path, "r", encoding="utf-8") as f:
         books = json.load(f)
