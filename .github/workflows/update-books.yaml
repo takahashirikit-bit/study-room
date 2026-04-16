@@ -1,0 +1,28 @@
+name: Update Issue Template from Books List
+
+on:
+  push:
+    paths:
+      - '00_meta/books.json'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install PyYAML
+        run: pip install PyYAML
+      - name: Run Update Script
+        run: python scripts/update_template.py
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/ISSUE_TEMPLATE/study_log.yml
+          git commit -m "chore: sync books to issue template" || exit 0
+          git push

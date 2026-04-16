@@ -1,0 +1,11 @@
+[
+  { "title": "Unityシェーダープログラミング SRP編", "dir": "03_apps/01_unity-srp-shader" },
+  { "title": "プログラムはなぜ動くのか", "dir": "01_core/01_how-program-works" },
+  { "title": "ネットワークはなぜつながるのか", "dir": "02_arch/01_how-network-works" },
+  { "title": "Terraformではじめる実践IaC", "dir": "04_infra/01_practical-terraform-iac" },
+  { "title": "ふつうのLinuxプログラミング", "dir": "02_arch/02_linux-programming" },
+  { "title": "デバッガの理論と実装", "dir": "01_core/02_debugger-impl" },
+  { "title": "コンピュータはなぜ動くのか", "dir": "01_core/03_how-computer-works" },
+  { "title": "ゼロからのOS自作入門", "dir": "01_core/os-making" },
+  { "title": "SREの探求 ―様々な企業におけるサイトリライ", "dir": "03_apps/02_sre-exploration" }
+]

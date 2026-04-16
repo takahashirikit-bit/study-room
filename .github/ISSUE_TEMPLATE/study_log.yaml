@@ -14,10 +14,12 @@ body:
         - 04_infra
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: book_title
     attributes:
-      label: 参考書名
+      label: 書籍名
+      options:
+        - "temp"
   - type: input
     id: chapter
     attributes:
