@@ -1,6 +1,7 @@
 name: Update Issue Template from Books List
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - '00_meta/books.json'
