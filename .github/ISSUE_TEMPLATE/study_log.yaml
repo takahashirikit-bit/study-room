@@ -1,6 +1,6 @@
 name: study_log
 description: 学習メモを投稿し、AIメンターによる理解度チェックとクイズを受けます
-title: '[Study] '
+title: '[Study]: '
 labels:
 - auto-process
 body:

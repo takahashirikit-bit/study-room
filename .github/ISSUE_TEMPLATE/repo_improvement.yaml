@@ -1,30 +1,32 @@
-name: 🚀 リポジトリ改善メモ (Epic)
+name: Improvement_repo_idea
 description: リポジトリ全体のアップデートアイデアをメモし、タスク化するためのテンプレート
 title: "[Improvement]: "
-labels: ["enhancement", "epic"]
+labels: 
+- "enhancement"
+- "epic"
 body:
-  - type: markdown
-    attributes:
-      value: |
-        思いついた改善案や追加機能をタスクリストとしてメモしてください。後から各項目を個別のIssueに変換して詳細を管理します。
-  - type: textarea
-    id: idea_dump
-    attributes:
-      label: 💡 アイデアメモ (タスクリスト)
-      description: "- [ ] の形式で思いついたアイデアを書き出してください。GitHubの機能で後から個別Issueに変換可能です。"
-      value: |
-    validations:
-      required: true
-  - type: dropdown
-    id: target_layer
-    attributes:
-      label: 📂 関連する主要ディレクトリ・領域
-      options:
-        - "全体 (Cross-cutting)"
-        - "01_core"
-        - "02_arch"
-        - "03_apps"
-        - "04_infra"
-        - "CI/CD (GitHub Actions)"
-    validations:
-      required: true
+- type: markdown
+  attributes:
+    value: |
+      思いついた改善案や追加機能をタスクリストとしてメモしてください。後から各項目を個別のIssueに変換して詳細を管理します。
+- type: textarea
+  id: idea_dump
+  attributes:
+    label: 💡 アイデアメモ (タスクリスト)
+    description: "- [ ] の形式で思いついたアイデアを書き出してください。GitHubの機能で後から個別Issueに変換可能です。"
+    value: |
+  validations:
+    required: true
+- type: dropdown
+  id: target_layer
+  attributes:
+    label: 📂 関連する主要ディレクトリ・領域
+    options:
+      - "全体 (Cross-cutting)"
+      - "01_core"
+      - "02_arch"
+      - "03_apps"
+      - "04_infra"
+      - "CI/CD (GitHub Actions)"
+  validations:
+    required: true
