@@ -15,6 +15,7 @@ body:
     label: 💡 アイデアメモ (タスクリスト)
     description: "- [ ] の形式で思いついたアイデアを書き出してください。GitHubの機能で後から個別Issueに変換可能です。"
     value: |
+      - [] hoge
   validations:
     required: true
 - type: dropdown
