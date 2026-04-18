@@ -5,17 +5,6 @@ labels:
 - auto-process
 body:
 - type: dropdown
-  id: category
-  attributes:
-    label: カテゴリ
-    options:
-    - 01_core
-    - 02_arch
-    - 03_apps
-    - 04_infra
-  validations:
-    required: true
-- type: dropdown
   id: book_title
   attributes:
     label: 書籍名
@@ -29,6 +18,8 @@ body:
     - コンピュータはなぜ動くのか
     - ゼロからのOS自作入門
     - SREの探求 ―様々な企業におけるサイトリライ
+  validations:
+    required: true
 - type: input
   id: chapter
   attributes:

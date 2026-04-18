@@ -26,17 +26,20 @@ jobs:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           BODY="${{ github.event.issue.body }}"
-          CATEGORY=$(echo "$BODY" | grep -A 1 "### カテゴリ" | tail -n 1 | xargs)
           BOOK=$(echo "$BODY" | grep -A 1 "### 参考書名" | tail -n 1 | xargs)
           CHAPTER=$(echo "$BODY" | grep -A 1 "### 章番号" | tail -n 1 | xargs | sed 's/[^0-9]//g')
-          
           OWN_WORDS=$(echo "$BODY" | sed -n '/### この章を一言で言うと？/,/###/p' | sed '1d;$d' | xargs -0)
           CONTENT=$(echo "$BODY" | sed -n '/### 学習メモ/,/###/p' | sed '1d;$d' | xargs -0)
           PROS_CONS=$(echo "$BODY" | sed -n '/### この技術の「使いどころ」と「注意点」/,/###/p' | sed '1d;$d' | xargs -0)
           QUIZ_ANS=$(echo "$BODY" | sed -n '/### 【AI回答用】クイズの回答欄/,$p' | sed '1d' | xargs -0)
 
-          if [ -z "$CATEGORY" ] || [ -z "$BOOK" ] || [ -z "$CHAPTER" ] || [ -z "$CONTENT" ]; then
+          if [ -z "$BOOK" ] || [ -z "$CHAPTER" ] || [ -z "$CONTENT" ]; then
             echo "Error: 必須項目が不足しています。" && exit 1
+          fi
+
+          DEST_DIR=$(jq -r --arg TITLE "$BOOK" '.[] | select(.title == $TITLE) | .dir' 00_meta/books.json)
+          if [ -z "$DEST_DIR" ] || [ "$DEST_DIR" == "null" ]; then
+            echo "Error: 'books.json' に参考書名 '$BOOK' が登録されていません。" && exit 1
           fi
 
           if [ "${{ github.event.label.name }}" == "action:summary" ]; then
@@ -58,7 +61,7 @@ jobs:
           fi
           jq -r '.candidates[0].content.parts[0].text' api_response.json > ai_output.txt
           
-          echo "dest_dir=$CATEGORY/$BOOK" >> $GITHUB_OUTPUT
+          echo "dest_dir=$DEST_DIR" >> $GITHUB_OUTPUT
           echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
 
