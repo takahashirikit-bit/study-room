@@ -24,22 +24,25 @@ jobs:
         id: gemini
         env:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RAW_BODY: ${{ github.event.issue.body }}
         run: |
-          BODY="${{ github.event.issue.body }}"
-          BOOK=$(echo "$BODY" | grep -A 1 "### 参考書名" | tail -n 1 | xargs)
-          CHAPTER=$(echo "$BODY" | grep -A 1 "### 章番号" | tail -n 1 | xargs | sed 's/[^0-9]//g')
-          OWN_WORDS=$(echo "$BODY" | sed -n '/### この章を一言で言うと？/,/###/p' | sed '1d;$d' | xargs -0)
-          CONTENT=$(echo "$BODY" | sed -n '/### 学習メモ/,/###/p' | sed '1d;$d' | xargs -0)
-          PROS_CONS=$(echo "$BODY" | sed -n '/### この技術の「使いどころ」と「注意点」/,/###/p' | sed '1d;$d' | xargs -0)
-          QUIZ_ANS=$(echo "$BODY" | sed -n '/### 【AI回答用】クイズの回答欄/,$p' | sed '1d' | xargs -0)
+          echo "$RAW_BODY" > issue_body.txt
+          BOOK=$(grep -A 1 "### 書籍名" issue_body.txt | tail -n 1 | xargs)
+          CHAPTER=$(grep -A 1 "### 章番号" issue_body.txt | tail -n 1 | xargs | sed 's/[^0-9]//g')
+          OWN_WORDS=$(sed -n '/### この章を一言で言うと？/,/###/p' issue_body.txt | sed '1d;$d' | xargs -d '\n' echo)
+          CONTENT=$(sed -n '/### 学習メモ/,/###/p' issue_body.txt | sed '1d;$d' | xargs -d '\n' echo)
+          PROS_CONS=$(sed -n '/### この技術の「使いどころ」と「注意点」/,/###/p' issue_body.txt | sed '1d;$d' | xargs -d '\n' echo)
+          QUIZ_ANS=$(sed -n '/### 【AI回答用】クイズの回答欄/,$p' issue_body.txt | sed '1d' | xargs -d '\n' echo)
 
           if [ -z "$BOOK" ] || [ -z "$CHAPTER" ] || [ -z "$CONTENT" ]; then
-            echo "Error: 必須項目が不足しています。" && exit 1
+            echo "Error: 必須項目が不足しています。抽出結果を確認してください。"
+            echo "BOOK: $BOOK, CHAPTER: $CHAPTER"
+            exit 1
           fi
 
           DEST_DIR=$(jq -r --arg TITLE "$BOOK" '.[] | select(.title == $TITLE) | .dir' 00_meta/books.json)
           if [ -z "$DEST_DIR" ] || [ "$DEST_DIR" == "null" ]; then
-            echo "Error: 'books.json' に参考書名 '$BOOK' が登録されていません。" && exit 1
+            echo "Error: 'books.json' に書籍名 '$BOOK' が登録されていません。" && exit 1
           fi
 
           if [ "${{ github.event.label.name }}" == "action:summary" ]; then
@@ -49,7 +52,9 @@ jobs:
           fi
           INSTRUCTIONS=$(cat "$PROMPT_FILE")
 
-          FULL_PROMPT="${INSTRUCTIONS}\n\n一言要約: ${OWN_WORDS}\n学習メモ: ${CONTENT}\n推論（使いどころ）: ${PROS_CONS}\nクイズ回答: ${QUIZ_ANS}"
+          FULL_PROMPT=$(printf "%s\n\n一言要約: %s\n学習メモ: %s\n推論（使いどころ）: %s\nクイズ回答: %s" \
+            "$INSTRUCTIONS" "$OWN_WORDS" "$CONTENT" "$PROS_CONS" "$QUIZ_ANS")
+          
           JSON_DATA=$(jq -n --arg msg "$FULL_PROMPT" '{contents: [{parts: [{text: $msg}]}]}')
 
           HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
@@ -63,7 +68,13 @@ jobs:
           
           echo "dest_dir=$DEST_DIR" >> $GITHUB_OUTPUT
           echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
-          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+          # CONTENTは改行を含むため環境変数経由での受け渡しを推奨しますが、既存フロー維持のため一応出力
+          # ※巨大な場合はエラーになる可能性があるため、ファイル経由が安全です
+          {
+            echo "content<<EOF"
+            echo "$CONTENT"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Create and Push Files
         if: github.event.label.name == 'action:summary'
@@ -76,6 +87,7 @@ jobs:
             echo "# ${{ github.event.issue.title }} - Memo"
             echo "Source: #${{ github.event.issue.number }}"
             echo -e "\n---\n"
+            # 前のステップで作成した変数を使用
             echo "${{ steps.gemini.outputs.content }}"
           } > "$DIR/${PREFIX}_memo.md"
 
