@@ -69,7 +69,7 @@ jobs:
             --arg quiz "$QUIZ_ANS" \
             '{contents: [{parts: [{text: ($inst + "\n\n一言要約: " + $own + "\n学習メモ: " + $cont + "\n推論（使いどころ）: " + $pros + "\nクイズ回答: " + $quiz)}]}]}')
 
-          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$API_KEY" \
+          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
             -H "Content-Type: application/json" \
             -d "$JSON_DATA")
 
