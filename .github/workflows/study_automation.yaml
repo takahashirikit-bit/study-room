@@ -3,10 +3,14 @@ name: AI Study Automation
 on:
   issues:
     types: [labeled]
+  issue_comment:
+    types: [created]
 
 jobs:
   ai-process:
-    if: github.event.label.name == 'action:summary' || github.event.label.name == 'action:review'
+    if: >
+      (github.event_name == 'issues' && (github.event.label.name == 'action:summary' || github.event.label.name == 'action:review')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.issue.labels.*.name, 'auto-process') && github.event.comment.user.type != 'Bot')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -25,6 +29,7 @@ jobs:
         env:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RAW_BODY: ${{ github.event.issue.body }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "$RAW_BODY" > issue_body.txt
           BOOK=$(sed -n '/### 書籍名/,/###/p' issue_body.txt | sed '1d;$d' | xargs)
@@ -49,25 +54,38 @@ jobs:
             exit 1
           fi
 
-          DEST_DIR=$(jq -r --arg TITLE "$BOOK" '.[] | select(.title == $TITLE) | .dir' 00_meta/books.json)
-          if [ -z "$DEST_DIR" ] || [ "$DEST_DIR" == "null" ]; then
-            echo "Error: '00_meta/books.json' に書籍名 '$BOOK' が登録されていません。" && exit 1
-          fi
+          DEST_DIR=$(jq -r --arg TITLE "$BOOK" '.[] | select(.title == $TITLE) | .dir' 00_meta/books.json || echo "")
 
-          if [ "${{ github.event.label.name }}" == "action:summary" ]; then
+          if [ "${{ github.event_name }}" == "issues" ] && [ "${{ github.event.label.name }}" == "action:summary" ]; then
             PROMPT_FILE=".github/prompts/summary.txt"
+            
+            OWN_WORDS=$(awk -v start="### この章を一言で言うと？" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
+            CONTENT=$(awk -v start="### 学習メモ" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
+            PROS_CONS=$(awk -v start="### この技術の「使いどころ」と「注意点」" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
+            
+            USER_INPUT="一言要約: $OWN_WORDS\n学習メモ: $CONTENT\n推論: $PROS_CONS"
+
           else
-            PROMPT_FILE=".github/prompts/review.txt"
+            PROMPT_FILE=".github/prompts/review.txt"            
+            COMMENTS=$(gh issue view ${{ github.event.issue.number }} --json comments -q '
+              .comments[] | "[\(.author.login)]\n\(.body)\n---"
+            ')
+
+            USER_INPUT=$(cat <<EOF
+            【学習メモ（初期コンテキスト）】
+            $RAW_BODY
+
+            【これまでの対話履歴（最新のコメントに対して評価してください）】
+            $COMMENTS
+            EOF
+            )
           fi
           INSTRUCTIONS=$(cat "$PROMPT_FILE")
 
           JSON_DATA=$(jq -n \
             --arg inst "$INSTRUCTIONS" \
-            --arg own "$OWN_WORDS" \
-            --arg cont "$CONTENT" \
-            --arg pros "$PROS_CONS" \
-            --arg quiz "$QUIZ_ANS" \
-            '{contents: [{parts: [{text: ($inst + "\n\n一言要約: " + $own + "\n学習メモ: " + $cont + "\n推論（使いどころ）: " + $pros + "\nクイズ回答: " + $quiz)}]}]}')
+            --arg text "$USER_INPUT" \
+            '{contents: [{parts: [{text: ($inst + "\n\n" + $text)}]}]}')
 
           HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
             -H "Content-Type: application/json" \
@@ -77,7 +95,7 @@ jobs:
             echo "Error: API Fail ($HTTP_STATUS)" && cat api_response.json && exit 1
           fi          
           jq -r '.candidates[0].content.parts[0].text' api_response.json > ai_output.txt
-          
+
           echo "dest_dir=$DEST_DIR" >> $GITHUB_OUTPUT
           echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
           {
@@ -116,7 +134,7 @@ jobs:
           fi
 
       - name: Post Review Comment
-        if: github.event.label.name == 'action:review'
+        if: github.event_name == 'issue_comment' || github.event.label.name == 'action:review'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
