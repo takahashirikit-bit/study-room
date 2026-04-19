@@ -27,17 +27,34 @@ jobs:
           RAW_BODY: ${{ github.event.issue.body }}
         run: |
           echo "$RAW_BODY" > issue_body.txt
-          BOOK=$(grep -A 1 "### 書籍名" issue_body.txt | tail -n 1 | xargs)
-          CHAPTER=$(grep -A 1 "### 章番号" issue_body.txt | tail -n 1 | xargs | sed 's/[^0-9]//g')
-          OWN_WORDS=$(sed -n '/### この章を一言で言うと？/,/###/p' issue_body.txt | sed '1d;$d' | xargs)
-          CONTENT=$(sed -n '/### 学習メモ/,/###/p' issue_body.txt | sed '1d;$d' | xargs)
-          PROS_CONS=$(sed -n '/### この技術の「使いどころ」と「注意点」/,/###/p' issue_body.txt | sed '1d;$d' | xargs)
-          QUIZ_ANS=$(sed -n '/### 【AI回答用】クイズの回答欄/,$p' issue_body.txt | sed '1d' | xargs)
+          extract_section() {
+            awk -v target="$1" '
+              $0 ~ target {found=1; next}
+              found && /###/ {exit}
+              found && NF {print $0; exit}
+            ' issue_body.txt | xargs
+          }
+
+          extract_multi() {
+            awk -v target="$1" '
+              $0 ~ target {found=1; next}
+              found && /^### / {found=0; next}
+              found {print $0}
+            ' issue_body.txt | sed '1,2d; $d'
+          }
+
+          BOOK=$(extract_section "### 書籍名")
+          CHAPTER=$(extract_section "### 章番号" | sed 's/[^0-9]//g')
+          
+          OWN_WORDS=$(awk '/### この章を一言で言うと？/,/###/ {if($0 !~ /###/) print}' issue_body.txt | xargs)
+          CONTENT=$(awk '/### 学習メモ/,/###/ {if($0 !~ /###/) print}' issue_body.txt)
+          PROS_CONS=$(awk '/### この技術の「使いどころ」と「注意点」/,/###/ {if($0 !~ /###/) print}' issue_body.txt | xargs)
+          QUIZ_ANS=$(awk '/### 【AI回答用】クイズの回答欄/,/###/ {if($0 !~ /###/) print}' issue_body.txt | xargs)
           echo "Debug: BOOK='$BOOK'"
           echo "Debug: CHAPTER='$CHAPTER'"
           if [ -z "$BOOK" ] || [ -z "$CHAPTER" ] || [ -z "$CONTENT" ]; then
-            echo "Error: 必須項目が不足しています。抽出結果を確認してください。"
-            echo "BOOK: $BOOK, CHAPTER: $CHAPTER"
+            echo "Error: 項目の抽出に失敗しました。Issueの形式を確認してください。"
+            echo "抽出結果 -> 書籍名: [$BOOK], 章番号: [$CHAPTER]"
             exit 1
           fi
 
@@ -67,7 +84,7 @@ jobs:
 
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Error: API Fail ($HTTP_STATUS)" && cat api_response.json && exit 1
-          fi
+          fi          
           jq -r '.candidates[0].content.parts[0].text' api_response.json > ai_output.txt
           
           echo "dest_dir=$DEST_DIR" >> $GITHUB_OUTPUT
