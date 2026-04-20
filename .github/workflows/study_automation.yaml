@@ -58,27 +58,20 @@ jobs:
 
           if [ "${{ github.event_name }}" == "issues" ] && [ "${{ github.event.label.name }}" == "action:summary" ]; then
             PROMPT_FILE=".github/prompts/summary.txt"
-            
+
             OWN_WORDS=$(awk -v start="### この章を一言で言うと？" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
             CONTENT=$(awk -v start="### 学習メモ" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
             PROS_CONS=$(awk -v start="### この技術の「使いどころ」と「注意点」" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
-            
+
             USER_INPUT="一言要約: $OWN_WORDS\n学習メモ: $CONTENT\n推論: $PROS_CONS"
 
-          else
+            else
             PROMPT_FILE=".github/prompts/review.txt"            
             COMMENTS=$(gh issue view ${{ github.event.issue.number }} --json comments -q '
               .comments[] | "[\(.author.login)]\n\(.body)\n---"
             ')
 
-            USER_INPUT=$(cat <<EOF
-            【学習メモ（初期コンテキスト）】
-            $RAW_BODY
-
-            【これまでの対話履歴（最新のコメントに対して評価してください）】
-            $COMMENTS
-            EOF
-            )
+            USER_INPUT="【学習メモ（初期コンテキスト）】\n$RAW_BODY\n\n【これまでの対話履歴（最新のコメントに対して評価してください）】\n$COMMENTS"
           fi
           INSTRUCTIONS=$(cat "$PROMPT_FILE")
 
@@ -95,7 +88,7 @@ jobs:
             echo "Error: API Fail ($HTTP_STATUS)" && cat api_response.json && exit 1
           fi          
           jq -r '.candidates[0].content.parts[0].text' api_response.json > ai_output.txt
-
+          
           echo "dest_dir=$DEST_DIR" >> $GITHUB_OUTPUT
           echo "chapter=chapter$CHAPTER" >> $GITHUB_OUTPUT
           {
