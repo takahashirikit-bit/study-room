@@ -80,7 +80,11 @@ jobs:
             --arg text "$USER_INPUT" \
             '{contents: [{parts: [{text: ($inst + "\n\n" + $text)}]}]}')
 
-          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
+          HTTP_STATUS=$(curl -s -o api_response.json -w "%{http_code}" \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
             -H "Content-Type: application/json" \
             -d "$JSON_DATA")
 
