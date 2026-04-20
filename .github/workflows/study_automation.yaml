@@ -30,6 +30,7 @@ jobs:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RAW_BODY: ${{ github.event.issue.body }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODEL_NAME: ${{ vars.GEMINI_MODEL || 'gemini-flash-latest' }}
         run: |
           echo "$RAW_BODY" > issue_body.txt
           BOOK=$(sed -n '/### 書籍名/,/###/p' issue_body.txt | sed '1d;$d' | xargs)
@@ -84,7 +85,7 @@ jobs:
             --retry 5 \
             --retry-delay 10 \
             --retry-all-errors \
-            -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$API_KEY" \
+            -X POST "https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=$API_KEY" \
             -H "Content-Type: application/json" \
             -d "$JSON_DATA")
 
