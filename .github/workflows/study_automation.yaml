@@ -63,10 +63,13 @@ jobs:
             OWN_WORDS=$(awk -v start="### この章を一言で言うと？" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
             CONTENT=$(awk -v start="### 学習メモ" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
             PROS_CONS=$(awk -v start="### この技術の「使いどころ」と「注意点」" '$0 ~ start {found=1; next} found && /^### / {found=0} found {print $0}' issue_body.txt)
+            COMMENTS=$(gh issue view ${{ github.event.issue.number }} --json comments -q '
+              .comments[] | "[\(.author.login)]\n\(.body)\n---"
+            ')
 
-            USER_INPUT="一言要約: $OWN_WORDS\n学習メモ: $CONTENT\n推論: $PROS_CONS"
+            USER_INPUT="一言要約: $OWN_WORDS\n学習メモ: $CONTENT\n推論: $PROS_CONS\n\n対話履歴: $COMMENTS"
 
-            else
+          else
             PROMPT_FILE=".github/prompts/review.txt"            
             COMMENTS=$(gh issue view ${{ github.event.issue.number }} --json comments -q '
               .comments[] | "[\(.author.login)]\n\(.body)\n---"
